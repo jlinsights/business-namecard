@@ -36,13 +36,31 @@ import {
   MessageCircle,
   ChevronUp,
   ChevronDown,
-  AtSign
+  AtSign,
+  Layers,
+  Users,
+  Settings,
+  MoreVertical,
+  Lock,
+  Unlock,
+  ShoppingBag,
+  DollarSign,
+  Key,
+  GripVertical,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  Activity,
+  Briefcase,
+  User,
+  FileText,
+  Clock
 } from 'lucide-react';
 
 export const IconMap: Record<string, React.FC<any>> = {
   Instagram,
   Linkedin,
-  Twitter,
+  Twitter, 
   Globe,
   Mail,
   Phone, 
@@ -76,7 +94,25 @@ export const IconMap: Record<string, React.FC<any>> = {
   MessageCircle,
   ChevronUp,
   ChevronDown,
-  AtSign
+  AtSign,
+  Layers,
+  Users,
+  Settings,
+  MoreVertical,
+  Lock,
+  Unlock,
+  ShoppingBag,
+  DollarSign,
+  Key,
+  GripVertical,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  Activity,
+  Briefcase,
+  User,
+  FileText,
+  Clock
 };
 
 export const GetIcon = ({ name, className = "w-5 h-5" }: { name: string, className?: string }) => {

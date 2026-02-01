@@ -4,371 +4,420 @@ import { GetIcon } from './components/Icons';
 import QRCodeModal from './components/QRCodeModal';
 import AvatarSelectionModal from './components/AvatarSelectionModal';
 import AnalyticsModal from './components/AnalyticsModal';
+import AuditLogModal from './components/AuditLogModal';
 import { generateProfessionalBio, generateVCardData } from './services/geminiService';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-// Initial Mock Data
-const INITIAL_PROFILE: UserProfile = {
-  name: "Alex Sterling",
-  role: "Senior Product Designer",
-  company: "TabNode Creative",
-  bio: "Crafting digital experiences that humanize technology. Passionate about minimalist design and accessibility.",
-  avatarUrl: "https://picsum.photos/200/200",
-  email: "alex@tabnode.is",
-  phone: "+1 (555) 012-3456",
-  location: "San Francisco, CA",
-  websiteUrl: "https://tabnode.is",
-  themeColor: "from-indigo-500 to-purple-600"
+// --- DATA INITIALIZATION ---
+
+const generateMockHistory = (count: number) => {
+  const timestamps = [];
+  const now = Date.now();
+  for (let i = 0; i < count; i++) {
+    const randomTime = now - Math.floor(Math.random() * 604800000);
+    timestamps.push(randomTime);
+  }
+  return timestamps;
 };
 
-const INITIAL_LINKS: LinkItem[] = [
-  { id: '1', title: 'My Portfolio', url: 'https://tabnode.is', type: 'website', iconName: 'Globe', clicks: 124 },
-  { id: '7', title: 'Latest Video', url: 'https://youtube.com', type: 'social', iconName: 'Youtube', clicks: 85 },
-  { id: '6', title: 'GitHub', url: 'https://github.com', type: 'social', iconName: 'Github', clicks: 42 },
-  { id: '2', title: 'Instagram', url: 'https://instagram.com', type: 'social', iconName: 'Instagram', clicks: 215 },
-  { id: '3', title: 'LinkedIn', url: 'https://linkedin.com', type: 'social', iconName: 'Linkedin', clicks: 156 },
-  { id: '4', title: 'Twitter / X', url: 'https://twitter.com', type: 'social', iconName: 'Twitter', clicks: 98 },
-  { id: '5', title: 'Book a Call', url: 'https://calendly.com', type: 'contact', iconName: 'Phone', clicks: 34 },
+const INITIAL_LINKS_1: LinkItem[] = [
+  { 
+    id: '101', title: '1:1 Strategy Call', url: 'https://calendly.com', type: 'commerce', iconName: 'Phone', 
+    clicks: 12, clickTimestamps: generateMockHistory(12), price: '150', currency: '$', description: '30-min consultation for UX/UI review'
+  },
+  { 
+    id: '1', title: 'Company Portfolio', url: 'https://tabnode.is', type: 'website', iconName: 'Globe', 
+    clicks: 124, clickTimestamps: generateMockHistory(124)
+  },
+  { 
+    id: '102', title: 'Q3 Design Proposal', url: 'https://dropbox.com', type: 'locked', iconName: 'Lock', 
+    clicks: 5, clickTimestamps: generateMockHistory(5), isLocked: true, description: 'Confidential Client Access Only'
+  },
+  { 
+    id: '3', title: 'LinkedIn', url: 'https://linkedin.com', type: 'social', iconName: 'Linkedin', 
+    clicks: 156, clickTimestamps: generateMockHistory(156)
+  },
+];
+
+const INITIAL_LINKS_2: LinkItem[] = [
+  { id: '2', title: 'Instagram', url: 'https://instagram.com', type: 'social', iconName: 'Instagram', clicks: 215, clickTimestamps: generateMockHistory(215) },
+  { 
+    id: '201', title: 'Lightroom Presets Pack', url: 'https://gumroad.com', type: 'commerce', iconName: 'ShoppingBag', 
+    clicks: 85, clickTimestamps: generateMockHistory(85), price: '29', currency: '$', description: 'The exact filters I use for my feed.'
+  },
+  { id: '7', title: 'Latest Video', url: 'https://youtube.com', type: 'social', iconName: 'Youtube', clicks: 85, clickTimestamps: generateMockHistory(85) },
+];
+
+const INITIAL_PROFILES: UserProfile[] = [
+  {
+    id: 'profile_1',
+    type: 'business',
+    organizationName: 'TabNode Corp.',
+    isVerified: true,
+    name: "Alex Sterling",
+    role: "Senior Product Designer",
+    company: "TabNode Creative",
+    bio: "Crafting digital experiences that humanize technology. Passionate about minimalist design and accessibility.",
+    avatarUrl: "https://picsum.photos/200/200",
+    email: "alex@tabnode.is",
+    phone: "+1 (555) 012-3456",
+    location: "San Francisco, CA",
+    websiteUrl: "https://tabnode.is",
+    themeColor: "from-slate-800 to-slate-900",
+    links: INITIAL_LINKS_1,
+    privacySettings: {
+        emailVisible: true,
+        phoneVisible: true,
+        locationVisible: true,
+        maskSensitiveData: true
+    }
+  },
+  {
+    id: 'profile_2',
+    type: 'personal',
+    name: "Alex the Creator",
+    role: "Content Creator",
+    company: "Freelance",
+    bio: "Sharing my journey in tech & design. New videos every Tuesday!",
+    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    email: "creator@tabnode.is",
+    phone: "+1 (555) 999-8888",
+    location: "Remote",
+    websiteUrl: "https://youtube.com",
+    themeColor: "from-pink-500 to-rose-500",
+    links: INITIAL_LINKS_2,
+    privacySettings: {
+        emailVisible: true,
+        phoneVisible: false, // Phone hidden on personal
+        locationVisible: true,
+        maskSensitiveData: false
+    }
+  }
 ];
 
 const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', icon: 'Instagram' },
   { id: 'tiktok', label: 'TikTok', icon: 'Music' },
   { id: 'youtube', label: 'YouTube', icon: 'Youtube' },
-  { id: 'threads', label: 'Threads', icon: 'AtSign' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
-  { id: 'telegram', label: 'Telegram', icon: 'Send' },
-  { id: 'discord', label: 'Discord', icon: 'Gamepad2' },
   { id: 'linkedin', label: 'LinkedIn', icon: 'Linkedin' },
-  { id: 'twitter', label: 'Twitter', icon: 'Twitter' },
+  { id: 'commerce', label: 'Sell Product', icon: 'ShoppingBag' }, 
+  { id: 'locked', label: 'Secret Link', icon: 'Lock' }, 
   { id: 'website', label: 'Website', icon: 'Globe' },
   { id: 'email', label: 'Email', icon: 'Mail' },
   { id: 'phone', label: 'Phone', icon: 'Phone' },
-  { id: 'facebook', label: 'Facebook', icon: 'Facebook' },
-  { id: 'pinterest', label: 'Pinterest', icon: 'Pin' },
-  { id: 'github', label: 'GitHub', icon: 'Github' },
-  { id: 'custom', label: 'Custom Link', icon: 'Link' },
 ];
 
 const PLATFORM_BASE_URLS: Record<string, string> = {
   instagram: 'https://instagram.com/',
   tiktok: 'https://tiktok.com/@',
   youtube: 'https://youtube.com/@',
-  threads: 'https://www.threads.net/@',
   linkedin: 'https://linkedin.com/in/',
-  twitter: 'https://twitter.com/',
-  facebook: 'https://facebook.com/',
-  github: 'https://github.com/',
-  pinterest: 'https://pinterest.com/',
-  discord: 'https://discord.gg/',
-  whatsapp: 'https://wa.me/',
-  telegram: 'https://t.me/',
 };
 
-const THEME_PRESETS = [
-  { id: 'indigo', value: 'from-indigo-500 to-purple-600', preview: 'bg-gradient-to-r from-indigo-500 to-purple-600' },
-  { id: 'pink', value: 'from-pink-500 to-rose-500', preview: 'bg-gradient-to-r from-pink-500 to-rose-500' },
-  { id: 'emerald', value: 'from-emerald-400 to-cyan-500', preview: 'bg-gradient-to-r from-emerald-400 to-cyan-500' },
-  { id: 'amber', value: 'from-orange-400 to-amber-400', preview: 'bg-gradient-to-r from-orange-400 to-amber-400' },
-  { id: 'slate', value: 'from-slate-700 to-slate-900', preview: 'bg-gradient-to-r from-slate-700 to-slate-900' },
-  { id: 'blue', value: 'from-blue-400 to-blue-600', preview: 'bg-gradient-to-r from-blue-400 to-blue-600' },
-];
+// --- HELPERS & SUB-COMPONENTS ---
 
-// Validation Helper
 const validateAndFormatUrl = (input: string, platformId: string): { isValid: boolean; formattedUrl: string; error?: string } => {
   const trimmed = input.trim();
   if (!trimmed) return { isValid: false, formattedUrl: input, error: 'This field cannot be empty.' };
-
-  // 1. Phone Validation
+  
+  if (platformId === 'commerce' || platformId === 'locked') {
+       if (!/^https?:\/\//i.test(trimmed)) return { isValid: true, formattedUrl: `https://${trimmed}` };
+       return { isValid: true, formattedUrl: trimmed };
+  }
   if (platformId === 'phone') {
-    const cleanNumber = trimmed.replace(/^tel:/i, '');
-    const hasInvalidChars = /[^0-9+\-\s().]/.test(cleanNumber);
-    const digitCount = cleanNumber.replace(/\D/g, '').length;
-    
-    if (hasInvalidChars) return { isValid: false, formattedUrl: input, error: 'Phone number contains invalid characters.' };
-    if (digitCount < 3) return { isValid: false, formattedUrl: input, error: 'Phone number is too short.' };
-    
     return { isValid: true, formattedUrl: trimmed.toLowerCase().startsWith('tel:') ? trimmed : `tel:${trimmed}` };
   }
-
-  // 2. WhatsApp Validation
-  if (platformId === 'whatsapp') {
-    let number = trimmed;
-    if (trimmed.startsWith('https://wa.me/')) {
-        number = trimmed.replace('https://wa.me/', '');
-    } else if (trimmed.startsWith('whatsapp://')) {
-        number = trimmed.replace('whatsapp://', '');
-    }
-
-    // Strip everything but numbers. WhatsApp API format requires country code but no '+'
-    const cleanNumber = number.replace(/[^0-9]/g, '');
-    
-    if (cleanNumber.length < 7) {
-        return { isValid: false, formattedUrl: input, error: 'Invalid WhatsApp number. Please enter digits including country code.' };
-    }
-    return { isValid: true, formattedUrl: `https://wa.me/${cleanNumber}` };
-  }
-
-  // 3. Email Validation
   if (platformId === 'email') {
-    const cleanEmail = trimmed.replace(/^mailto:/i, '');
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
-    
-    if (!isEmail) {
-       if (!cleanEmail.includes('@')) return { isValid: false, formattedUrl: input, error: 'Email is missing "@".' };
-       if (cleanEmail.includes('@') && !cleanEmail.split('@')[1].includes('.')) return { isValid: false, formattedUrl: input, error: 'Email domain is incomplete.' };
-       return { isValid: false, formattedUrl: input, error: 'Invalid email format.' };
-    }
     return { isValid: true, formattedUrl: trimmed.toLowerCase().startsWith('mailto:') ? trimmed : `mailto:${trimmed}` };
   }
-
-  // 4. TikTok Validation
-  if (platformId === 'tiktok') {
-    // If it's a full URL, try to extract the handle. 
-    // If it's just a handle, validate it.
-    let handle = trimmed;
-    if (trimmed.includes('tiktok.com/')) {
-        const parts = trimmed.split('tiktok.com/');
-        if (parts[1]) {
-            handle = parts[1].replace('@', '').split('?')[0]; // Remove query params and leading @
-        }
-    } else {
-        handle = trimmed.replace(/^@/, '');
-    }
-
-    // TikTok usernames can contain letters, numbers, underscores, and periods.
-    // However, they cannot end with a period.
-    if (/[^a-zA-Z0-9_.]/.test(handle)) {
-        return { isValid: false, formattedUrl: input, error: 'TikTok usernames can only contain letters, numbers, underscores, and periods.' };
-    }
-    return { isValid: true, formattedUrl: `https://tiktok.com/@${handle}` };
-  }
-
-  // 5. Telegram Validation
-  if (platformId === 'telegram') {
-    let cleanInput = trimmed;
-    // Handle full URLs
-    if (cleanInput.includes('t.me/')) {
-        cleanInput = cleanInput.split('t.me/')[1];
-    } else if (cleanInput.includes('telegram.me/')) {
-        cleanInput = cleanInput.split('telegram.me/')[1];
-    }
-    
-    // Handle @ prefix
-    if (cleanInput.startsWith('@')) {
-        cleanInput = cleanInput.substring(1);
-    }
-
-    // Check for invite links (usually start with +)
-    if (cleanInput.startsWith('+')) {
-         return { isValid: true, formattedUrl: `https://t.me/${cleanInput}` };
-    }
-
-    // Standard username validation (a-z, 0-9, underscore)
-    // We strip query params
-    cleanInput = cleanInput.split('?')[0];
-
-    // Basic cleanup
-    const handle = cleanInput.replace(/[^a-zA-Z0-9_]/g, '');
-    
-    if (!handle) return { isValid: false, formattedUrl: input, error: 'Invalid username.' };
-    
-    return { isValid: true, formattedUrl: `https://t.me/${handle}` };
-  }
-
-  // 6. Discord Validation
-  if (platformId === 'discord') {
-    let inputUrl = trimmed;
-    
-    // Handle raw invite codes (no slashes, no dots usually)
-    if (!inputUrl.includes('/') && !inputUrl.includes('.')) {
-        return { isValid: true, formattedUrl: `https://discord.gg/${inputUrl}` };
-    }
-
-    // Handle standard invite links
-    if (inputUrl.includes('discord.gg/')) {
-        const code = inputUrl.split('discord.gg/')[1].split('?')[0];
-        if (code) return { isValid: true, formattedUrl: `https://discord.gg/${code}` };
-    }
-    
-    if (inputUrl.includes('discord.com/invite/')) {
-        const code = inputUrl.split('discord.com/invite/')[1].split('?')[0];
-        if (code) return { isValid: true, formattedUrl: `https://discord.gg/${code}` };
-    }
-    
-    // Fallback for valid URLs (e.g. user profiles or specialized server links not matching above)
-  }
-
-  // 7. Threads Validation
-  if (platformId === 'threads') {
-    let handle = trimmed;
-    if (trimmed.includes('threads.net/')) {
-        const parts = trimmed.split('threads.net/');
-        if (parts[1]) {
-            handle = parts[1].replace('@', '').split('?')[0];
-        }
-    } else {
-        handle = trimmed.replace(/^@/, '');
-    }
-
-    if (/[^a-zA-Z0-9_.]/.test(handle)) {
-        return { isValid: false, formattedUrl: input, error: 'Invalid username characters.' };
-    }
-    return { isValid: true, formattedUrl: `https://www.threads.net/@${handle}` };
-  }
-
-  // 8. Social Username Handling (Generic)
   const baseUrl = PLATFORM_BASE_URLS[platformId];
-  const hasProtocol = /^[a-zA-Z]+:\/\//.test(trimmed); 
-  const hasSlashes = trimmed.includes('/');
-  
-  if (baseUrl && !hasProtocol && !hasSlashes) {
-    const cleanHandle = trimmed.replace(/^@/, '');
-    if (/\s/.test(cleanHandle)) return { isValid: false, formattedUrl: input, error: 'Usernames cannot contain spaces.' };
-    return { isValid: true, formattedUrl: `${baseUrl}${cleanHandle}` };
+  if (baseUrl && !trimmed.includes('/')) {
+    return { isValid: true, formattedUrl: `${baseUrl}${trimmed.replace(/^@/, '')}` };
   }
-
-  // 9. General URL Validation
   let urlToCheck = trimmed;
-
-  if (/\s/.test(trimmed)) {
-      return { isValid: false, formattedUrl: input, error: 'URL cannot contain spaces.' };
-  }
-  
-  // Protocol Validation
-  if (/^[a-zA-Z]+:\/\//.test(trimmed)) {
-      if (!/^https?:\/\//i.test(trimmed)) {
-          return { isValid: false, formattedUrl: input, error: 'Only http/https protocols are supported.' };
-      }
-      urlToCheck = trimmed;
-  } else {
-    urlToCheck = `https://${trimmed}`;
-  }
-
+  if (!/^https?:\/\//i.test(trimmed)) urlToCheck = `https://${trimmed}`;
   try {
-    const urlObj = new URL(urlToCheck);
-    if (!urlObj.hostname.includes('.') && !urlObj.protocol.startsWith('localhost')) {
-       return { isValid: false, formattedUrl: input, error: 'Domain name is incomplete (e.g., .com missing).' };
-    }
-    
-    const hostnameParts = urlObj.hostname.split('.');
-    const tld = hostnameParts[hostnameParts.length - 1];
-    if (tld.length < 2 || /\d/.test(tld)) {
-         return { isValid: false, formattedUrl: input, error: 'Invalid domain extension.' };
-    }
-
+    new URL(urlToCheck);
     return { isValid: true, formattedUrl: urlToCheck };
   } catch (e) {
-    return { isValid: false, formattedUrl: input, error: 'Malformed URL structure.' };
+    return { isValid: false, formattedUrl: input, error: 'Invalid URL.' };
   }
 };
 
-// Modal to guide Android users to open the downloaded file
+const PrivacyMaskedField = ({ value, label, iconName, isMasked, isEditing }: { value: string, label: string, iconName: string, isMasked: boolean, isEditing: boolean }) => {
+    const [revealed, setRevealed] = useState(false);
+    
+    if (!value) return null;
+
+    const displayValue = (isMasked && !revealed && !isEditing) 
+        ? value.replace(/.(?=.{4})/g, '*') // Simple mask showing last 4 chars
+        : value;
+
+    return (
+        <div 
+            onClick={() => !isEditing && isMasked && setRevealed(true)}
+            className={`flex items-center gap-2 text-sm ${isEditing ? 'text-gray-400' : 'text-gray-600'} ${isMasked && !revealed && !isEditing ? 'cursor-pointer hover:bg-gray-100 rounded px-2 py-1 -ml-2 transition-colors' : 'py-1'}`}
+        >
+            <GetIcon name={iconName} className="w-4 h-4 shrink-0" />
+            <span className={`truncate ${isMasked && !revealed && !isEditing ? 'font-mono tracking-widest text-gray-400' : ''}`}>
+                {displayValue}
+            </span>
+            {isMasked && !revealed && !isEditing && (
+                <span className="text-[10px] bg-gray-200 text-gray-500 px-1 rounded">Click to Reveal</span>
+            )}
+        </div>
+    );
+};
+
+const PinEntryModal = ({ isOpen, onClose, onSuccess, title }: { isOpen: boolean; onClose: () => void; onSuccess: () => void; title: string }) => {
+    const [pin, setPin] = useState('');
+    const [error, setError] = useState(false);
+    if (!isOpen) return null;
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pin === '1234') { onSuccess(); setPin(''); setError(false); } else { setError(true); setPin(''); }
+    };
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl relative animate-scale-up">
+                <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"><GetIcon name="X" className="w-5 h-5 text-gray-500" /></button>
+                <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-600"><GetIcon name="Lock" className="w-6 h-6" /></div>
+                    <h3 className="text-lg font-bold text-gray-900 text-center mb-1">Restricted Access</h3>
+                    <p className="text-xs text-gray-500 text-center mb-6 max-w-[200px]">Enter PIN to view <span className="font-semibold text-gray-700">"{title}"</span></p>
+                    <form onSubmit={handleSubmit} className="w-full">
+                        <input autoFocus type="password" maxLength={4} value={pin} onChange={(e) => { setPin(e.target.value); setError(false); }} className={`w-full text-center text-3xl tracking-[0.5em] font-mono p-3 border-b-2 bg-transparent focus:outline-none transition-colors ${error ? 'border-red-500 text-red-600 placeholder-red-300' : 'border-gray-300 focus:border-blue-500'}`} placeholder="••••" />
+                        {error && <p className="text-xs text-red-500 text-center mt-2 font-medium">Incorrect PIN</p>}
+                        <button type="submit" className="w-full mt-6 bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">Unlock Content</button>
+                    </form>
+                    <p className="text-[10px] text-gray-400 mt-4">Hint: Try 1234</p>
+                </div>
+             </div>
+        </div>
+    );
+};
+
 const AndroidSaveGuideModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 pb-10 sm:pb-6 relative animate-slide-up-mobile">
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full">
-                    <GetIcon name="X" className="w-5 h-5 text-gray-600" />
-                </button>
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full"><GetIcon name="X" className="w-5 h-5 text-gray-600" /></button>
                 <div className="flex flex-col items-center text-center">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">
-                        <GetIcon name="Download" className="w-6 h-6" />
-                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600"><GetIcon name="Download" className="w-6 h-6" /></div>
                     <h3 className="text-lg font-bold text-gray-900 mb-2">File Downloaded</h3>
-                    <p className="text-sm text-gray-600 mb-6">
-                        To save the contact, please pull down your notification shade and tap the 
-                        <span className="font-bold text-gray-800"> .vcf file</span> that just finished downloading.
-                    </p>
-                    <button onClick={onClose} className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl">
-                        Got it
-                    </button>
+                    <p className="text-sm text-gray-600 mb-6">Pull down notification shade to open .vcf</p>
+                    <button onClick={onClose} className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl">Got it</button>
                 </div>
             </div>
         </div>
     );
 };
 
+const ProfileDrawer = ({ isOpen, onClose, profiles, activeId, onSwitch, onAdd, onDelete }: any) => {
+    return (
+        <>
+            {isOpen && <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm transition-opacity" onClick={onClose} />}
+            <div className={`fixed top-0 bottom-0 left-0 w-80 bg-white z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-6 h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-8">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900"><GetIcon name="Layers" className="w-6 h-6 text-blue-600" />Identity Manager</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500"><GetIcon name="X" className="w-5 h-5" /></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar">
+                        {profiles.map((profile: UserProfile) => (
+                            <div key={profile.id} className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer group ${activeId === profile.id ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-transparent hover:bg-gray-50'}`} onClick={() => { onSwitch(profile.id); onClose(); }}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-full border-2 ${activeId === profile.id ? 'border-blue-500' : 'border-gray-200'} overflow-hidden shrink-0`}>
+                                        <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <h3 className={`font-bold truncate ${activeId === profile.id ? 'text-blue-700' : 'text-gray-900'}`}>{profile.name}</h3>
+                                            {profile.type === 'business' && <GetIcon name="Briefcase" className="w-3 h-3 text-blue-500" />}
+                                        </div>
+                                        <p className="text-xs text-gray-500 truncate">{profile.role}</p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={(e) => { e.stopPropagation(); onAdd(profile.id); }} className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-600 px-2 py-1 hover:bg-white rounded-md"><GetIcon name="Copy" className="w-3 h-3" /> Clone</button>
+                                </div>
+                                {activeId === profile.id && <div className="absolute top-4 right-4 text-blue-500"><GetIcon name="Check" className="w-5 h-5" /></div>}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                        <button onClick={() => { onAdd(); onClose(); }} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-500 font-semibold hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all"><GetIcon name="Plus" className="w-5 h-5" />Create New Identity</button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+
 export function App() {
-  const [profile, setProfile] = useState<UserProfile>(INITIAL_PROFILE);
-  const [links, setLinks] = useState<LinkItem[]>(INITIAL_LINKS);
+  // --- STATE MANAGEMENT ---
+  const [profiles, setProfiles] = useState<UserProfile[]>(INITIAL_PROFILES);
+  const [activeProfileId, setActiveProfileId] = useState<string>(INITIAL_PROFILES[0].id);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  // UI States
   const [showQR, setShowQR] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false); // New Audit Log state
   const [isEditing, setIsEditing] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
   const [bioTone, setBioTone] = useState<'professional' | 'creative' | 'friendly' | 'humorous' | 'inspirational'>('professional');
   const [copiedLink, setCopiedLink] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
-  
-  // OS Detection State for Contact Saving
   const [showAndroidGuide, setShowAndroidGuide] = useState(false);
+  
+  // Locked Link State
+  const [lockedLinkTarget, setLockedLinkTarget] = useState<LinkItem | null>(null);
 
-  // Edit State for Profile
-  const [editProfile, setEditProfile] = useState<UserProfile>(INITIAL_PROFILE);
-
-  // Add Link State
+  // Link Form State
   const [activePlatformId, setActivePlatformId] = useState(PLATFORMS[0].id);
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkTitle, setNewLinkTitle] = useState(PLATFORMS[0].label);
+  
+  // Extra fields for Commerce
+  const [newLinkPrice, setNewLinkPrice] = useState('');
+  const [newLinkDesc, setNewLinkDesc] = useState('');
 
-  const activeProfile = isPreviewMode ? editProfile : profile;
-  const showEditControls = isEditing && !isPreviewMode;
+  // --- DERIVED STATE ---
+  const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0];
+  const activeLinks = activeProfile.links;
   const isUrlValid = newLinkUrl && !linkError && validateAndFormatUrl(newLinkUrl, activePlatformId).isValid;
+  const showEditControls = isEditing && !isPreviewMode;
 
-  // Load analytics
-  useEffect(() => {
-    const savedClicks = localStorage.getItem('tabNode_clicks');
-    if (savedClicks) {
-        try {
-            const clicksMap = JSON.parse(savedClicks);
-            setLinks(currentLinks => currentLinks.map(link => ({
-                ...link,
-                clicks: clicksMap[link.id] !== undefined ? clicksMap[link.id] : link.clicks
-            })));
-        } catch (e) {
-            console.error("Failed to load analytics", e);
-        }
+  // --- ACTIONS ---
+
+  const handleUpdateProfile = (updates: Partial<UserProfile>) => {
+    setProfiles(profiles.map(p => p.id === activeProfileId ? { ...p, ...updates } : p));
+  };
+
+  const handleUpdatePrivacy = (updates: Partial<UserProfile['privacySettings']>) => {
+      handleUpdateProfile({
+          privacySettings: { ...activeProfile.privacySettings, ...updates }
+      });
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(activeLinks);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    handleUpdateProfile({ links: items });
+  };
+
+  const handleCreateProfile = (cloneId?: string) => {
+    const newId = `profile_${Date.now()}`;
+    let newProfile: UserProfile;
+    if (cloneId) {
+        const source = profiles.find(p => p.id === cloneId);
+        // Deep copy needed for links
+        newProfile = source ? { ...source, id: newId, name: `${source.name} (Copy)`, links: source.links.map(l => ({ ...l, id: Date.now().toString() + Math.random() })) } : { ...INITIAL_PROFILES[0], id: newId };
+    } else {
+        newProfile = { ...INITIAL_PROFILES[0], id: newId, name: "New Profile", links: [] };
     }
-  }, []);
+    setProfiles([...profiles, newProfile]);
+    setActiveProfileId(newId);
+    setIsEditing(true);
+  };
 
-  const handleLinkClick = (id: string) => {
+  const handleDeleteProfile = (id: string) => {
+    if (profiles.length <= 1) return;
+    const newProfiles = profiles.filter(p => p.id !== id);
+    setProfiles(newProfiles);
+    if (activeProfileId === id) setActiveProfileId(newProfiles[0].id);
+  };
+
+  const handleLinkClick = (link: LinkItem) => {
     if (showEditControls) return;
-    const newLinks = links.map(link => {
-        if (link.id === id) return { ...link, clicks: (link.clicks || 0) + 1 };
-        return link;
+
+    if (link.isLocked) {
+        setLockedLinkTarget(link);
+        return;
+    }
+    
+    // Register Click with Timestamp
+    const updatedProfiles = profiles.map(profile => {
+        if (profile.id !== activeProfileId) return profile;
+        return {
+            ...profile,
+            links: profile.links.map(l => l.id === link.id ? { 
+                ...l, 
+                clicks: (l.clicks || 0) + 1,
+                clickTimestamps: [...(l.clickTimestamps || []), Date.now()]
+            } : l)
+        };
     });
-    setLinks(newLinks);
-    const clicksMap = newLinks.reduce((acc, link) => ({ ...acc, [link.id]: link.clicks || 0 }), {} as Record<string, number>);
-    localStorage.setItem('tabNode_clicks', JSON.stringify(clicksMap));
+    setProfiles(updatedProfiles);
   };
 
-  const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    });
+  const handleUnlockSuccess = () => {
+      if (lockedLinkTarget) {
+          window.open(lockedLinkTarget.url, '_blank');
+          
+           // Register Click for locked link
+            const updatedProfiles = profiles.map(profile => {
+                if (profile.id !== activeProfileId) return profile;
+                return {
+                    ...profile,
+                    links: profile.links.map(l => l.id === lockedLinkTarget.id ? { 
+                        ...l, 
+                        clicks: (l.clicks || 0) + 1,
+                        clickTimestamps: [...(l.clickTimestamps || []), Date.now()]
+                    } : l)
+                };
+            });
+            setProfiles(updatedProfiles);
+          setLockedLinkTarget(null);
+      }
   };
 
+  const handleAddLink = () => {
+    const validation = validateAndFormatUrl(newLinkUrl, activePlatformId);
+    if (!validation.isValid) { setLinkError(validation.error || 'Invalid input'); return; }
+    
+    const platform = PLATFORMS.find(p => p.id === activePlatformId) || PLATFORMS[0];
+    let type: LinkItem['type'] = 'social';
+    if (['phone', 'email', 'commerce', 'locked'].includes(platform.id)) {
+        type = platform.id as LinkItem['type'];
+    } else if (platform.id === 'website') type = 'website';
+
+    const newLink: LinkItem = {
+      id: Date.now().toString(),
+      title: newLinkTitle || platform.label,
+      url: validation.formattedUrl,
+      type: type,
+      iconName: platform.icon,
+      clicks: 0,
+      clickTimestamps: [],
+      price: activePlatformId === 'commerce' ? newLinkPrice : undefined,
+      currency: activePlatformId === 'commerce' ? '$' : undefined,
+      description: (activePlatformId === 'commerce' || activePlatformId === 'locked') ? newLinkDesc : undefined,
+      isLocked: activePlatformId === 'locked'
+    };
+
+    handleUpdateProfile({ links: [...activeLinks, newLink] });
+    
+    // Reset
+    setNewLinkUrl(''); setNewLinkTitle(platform.label); setNewLinkPrice(''); setNewLinkDesc(''); setLinkError(null);
+  };
+
+  // ... (Other handlers like handleShare, handleSaveContact same as before)
   const handleShare = async () => {
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${activeProfile.name} - Digital Card`,
-          text: activeProfile.bio,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.log('Error sharing', err);
-      }
+      try { await navigator.share({ title: `${activeProfile.name}`, url: window.location.href }); } catch (err) { console.log('Error sharing', err); }
     } else {
-      handleCopyLink();
+       navigator.clipboard.writeText(window.location.href).then(() => { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); });
     }
   };
-
-  const handleSaveContact = () => {
+   const handleSaveContact = () => {
     const vCardData = generateVCardData(
       activeProfile.name,
       activeProfile.phone,
@@ -384,567 +433,353 @@ export function App() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // OS Detection Logic
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-    if (/android/i.test(userAgent)) {
-        setShowAndroidGuide(true);
-    }
+    if (/android/i.test(navigator.userAgent)) setShowAndroidGuide(true);
   };
-
-  const handleAIBioGen = async () => {
-    if (!editProfile.bio) return;
+   const handleAIBioGen = async () => {
+    if (!activeProfile.bio) return;
     setIsGeneratingBio(true);
-    const newBio = await generateProfessionalBio(editProfile.bio, editProfile.role, bioTone);
-    setEditProfile(prev => ({ ...prev, bio: newBio }));
+    const newBio = await generateProfessionalBio(activeProfile.bio, activeProfile.role, bioTone);
+    handleUpdateProfile({ bio: newBio });
     setIsGeneratingBio(false);
   };
 
-  const saveProfileChanges = () => {
-    setProfile(editProfile);
-    setIsEditing(false);
-    setIsPreviewMode(false);
-  };
-
-  const handleBlurUrl = () => {
-    if (!newLinkUrl) return;
-    const validation = validateAndFormatUrl(newLinkUrl, activePlatformId);
-    if (!validation.isValid) {
-        setLinkError(validation.error || 'Invalid input');
-    } else {
-        setLinkError(null);
-        setNewLinkUrl(validation.formattedUrl);
-    }
-  };
-
-  const handleAddLink = () => {
-    const validation = validateAndFormatUrl(newLinkUrl, activePlatformId);
-    if (!validation.isValid) {
-        setLinkError(validation.error || 'Invalid input');
-        return;
-    }
-    const platform = PLATFORMS.find(p => p.id === activePlatformId) || PLATFORMS[0];
-    let type: LinkItem['type'] = 'social';
-    if (['phone', 'email', 'contact', 'whatsapp'].includes(platform.id)) {
-        type = 'contact';
-    } else if (['website', 'custom'].includes(platform.id)) {
-        type = 'website';
-    }
-
-    const newLink: LinkItem = {
-      id: Date.now().toString(),
-      title: newLinkTitle || platform.label,
-      url: validation.formattedUrl,
-      type: type,
-      iconName: platform.icon,
-      clicks: 0
-    };
-
-    setLinks([...links, newLink]);
-    if (activePlatformId === 'phone') setNewLinkUrl('tel:');
-    else if (activePlatformId === 'email') setNewLinkUrl('mailto:');
-    else setNewLinkUrl('');
-    setNewLinkTitle(platform.label);
-    setLinkError(null);
-  };
-
-  const handleDeleteLink = (id: string) => {
-    setLinks(links.filter(l => l.id !== id));
-  };
-
-  const handleMoveLink = (index: number, direction: 'up' | 'down') => {
-    const newLinks = [...links];
-    if (direction === 'up' && index > 0) {
-        [newLinks[index], newLinks[index - 1]] = [newLinks[index - 1], newLinks[index]];
-    } else if (direction === 'down' && index < newLinks.length - 1) {
-        [newLinks[index], newLinks[index + 1]] = [newLinks[index + 1], newLinks[index]];
-    }
-    setLinks(newLinks);
-  };
-
-  const handleAvatarUpdate = (newUrl: string) => {
-    setEditProfile(prev => ({ ...prev, avatarUrl: newUrl }));
-    setShowAvatarModal(false);
-  };
-
-  const getPlaceholder = (platformId: string) => {
-    switch (platformId) {
-        case 'email': return 'hello@example.com';
-        case 'phone': return '+1 234 567 8900';
-        case 'whatsapp': return '+1 234 567 8900';
-        case 'telegram': return 'username or https://t.me/user';
-        case 'tiktok': return 'username or https://tiktok.com/@user';
-        case 'youtube': return 'username or https://youtube.com/@channel';
-        case 'instagram': return 'username or https://instagram.com/user';
-        case 'threads': return 'username or https://threads.net/@user';
-        case 'twitter': return 'username or https://twitter.com/user';
-        case 'facebook': return 'https://facebook.com/user';
-        case 'linkedin': return 'https://linkedin.com/in/user';
-        case 'github': return 'username or https://github.com/user';
-        case 'discord': return 'Invite Code or https://discord.gg/...';
-        case 'pinterest': return 'username or https://pinterest.com/user';
-        case 'website': return 'https://mysite.com';
-        case 'custom': return 'https://your-link.com';
-        default: return 'https://...';
-    }
-  };
-
-  React.useEffect(() => {
-    if (isEditing) {
-      setEditProfile(profile);
-    }
-  }, [isEditing, profile]);
-
   const isCustomTheme = activeProfile.themeColor.startsWith('#');
   const headerStyle = isCustomTheme ? { backgroundColor: activeProfile.themeColor } : {};
-  const headerClass = `h-40 relative shrink-0 ${!isCustomTheme ? `bg-gradient-to-r ${activeProfile.themeColor}` : ''}`;
+  const headerClass = `h-44 relative shrink-0 transition-colors duration-500 ease-in-out ${!isCustomTheme ? `bg-gradient-to-r ${activeProfile.themeColor}` : ''}`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center pb-safe">
-      <div className="w-full max-w-md bg-white shadow-xl min-h-screen relative overflow-hidden flex flex-col pb-24">
+      <div className="w-full max-w-md bg-white shadow-xl min-h-screen relative overflow-hidden flex flex-col pb-24 transition-colors duration-300">
         
-        {/* === Header / Cover Area === */}
+        {/* HEADER */}
         <div className={headerClass} style={headerStyle}>
-          <div className="absolute top-4 right-4 flex gap-2">
+          {/* Security Context Badge (Enterprise/Personal) */}
+          <div className="absolute top-0 left-0 right-0 h-8 bg-black/10 backdrop-blur-sm flex items-center justify-center gap-1.5 z-30">
+             {activeProfile.type === 'business' ? (
+                 <span className="flex items-center gap-1 text-[10px] font-bold text-white uppercase tracking-widest">
+                     <GetIcon name="ShieldCheck" className="w-3 h-3 text-blue-300" /> Enterprise Managed
+                 </span>
+             ) : (
+                 <span className="flex items-center gap-1 text-[10px] font-bold text-white uppercase tracking-widest opacity-80">
+                     <GetIcon name="User" className="w-3 h-3" /> Personal Space
+                 </span>
+             )}
+          </div>
+
+          <div className="absolute top-10 left-4 z-20">
+             <button onClick={() => setIsDrawerOpen(true)} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white shadow-sm ring-1 ring-white/20">
+                <GetIcon name="Layers" className="w-5 h-5" />
+             </button>
+          </div>
+          <div className="absolute top-10 right-4 flex gap-2 z-20">
             {isEditing && !isPreviewMode && (
-                <button 
-                    onClick={() => setShowAnalytics(true)}
-                    className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"
-                    title="Analytics"
-                >
-                    <GetIcon name="BarChart2" className="w-5 h-5" />
-                </button>
+                <>
+                <button onClick={() => setShowAuditLog(true)} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white" title="Security Logs"><GetIcon name="Activity" className="w-5 h-5" /></button>
+                <button onClick={() => setShowAnalytics(true)} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"><GetIcon name="BarChart2" className="w-5 h-5" /></button>
+                </>
             )}
             {isEditing && !isPreviewMode && (
-              <button 
-                onClick={() => setIsPreviewMode(true)}
-                className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"
-                title="Preview Mode"
-              >
-                <GetIcon name="Eye" className="w-5 h-5" />
-              </button>
+              <button onClick={() => setIsPreviewMode(true)} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"><GetIcon name="Eye" className="w-5 h-5" /></button>
             )}
             {!isPreviewMode && (
-              <button 
-                onClick={() => setIsEditing(!isEditing)}
-                className={`p-2 backdrop-blur-md rounded-full transition text-white ${isEditing ? 'bg-white text-gray-900' : 'bg-white/20 hover:bg-white/30'}`}
-              >
-                <GetIcon name={isEditing ? "X" : "Edit2"} className="w-5 h-5" />
-              </button>
+              <button onClick={() => setIsEditing(!isEditing)} className={`p-2 backdrop-blur-md rounded-full transition text-white ${isEditing ? 'bg-white text-gray-900' : 'bg-white/20 hover:bg-white/30'}`}><GetIcon name={isEditing ? "X" : "Edit2"} className="w-5 h-5" /></button>
             )}
             {(!isEditing || isPreviewMode) && (
               <>
-                <button 
-                  onClick={handleSaveContact}
-                  className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"
-                  title="Save Contact"
-                >
-                  <GetIcon name="Download" className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => setShowQR(true)}
-                  className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"
-                >
-                  <GetIcon name="QrCode" className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={handleShare}
-                  className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"
-                >
-                  <GetIcon name="Share2" className="w-5 h-5" />
-                </button>
+                <button onClick={handleSaveContact} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"><GetIcon name="Download" className="w-5 h-5" /></button>
+                <button onClick={() => setShowQR(true)} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"><GetIcon name="QrCode" className="w-5 h-5" /></button>
+                <button onClick={handleShare} className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition text-white"><GetIcon name="Share2" className="w-5 h-5" /></button>
               </>
             )}
           </div>
         </div>
 
-        {/* === Profile Section === */}
-        <div className="px-6 -mt-16 flex flex-col items-center relative z-10 shrink-0">
-          <div className="relative group">
-            <div className="w-32 h-32 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-200 relative">
-              <img src={activeProfile.avatarUrl} alt={activeProfile.name} className="w-full h-full object-cover" />
-              {showEditControls && (
-                <button 
-                  onClick={() => setShowAvatarModal(true)}
-                  className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <GetIcon name="Camera" className="w-8 h-8" />
-                </button>
-              )}
-            </div>
-            {showEditControls && (
-                <button 
-                    onClick={() => setShowAvatarModal(true)}
-                    className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white shadow-md border-2 border-white hover:bg-blue-700 transition-colors"
-                >
-                    <GetIcon name="Edit2" className="w-3 h-3" />
-                </button>
-            )}
-          </div>
-
-          <div className="mt-4 text-center w-full">
-            {showEditControls ? (
-               <div className="w-full space-y-3 mb-4 animate-fade-in">
-                  <input 
-                    type="text" 
-                    value={editProfile.name}
-                    onChange={(e) => setEditProfile({...editProfile, name: e.target.value})}
-                    className="w-full text-center text-xl font-bold border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent"
-                    placeholder="Your Name"
-                  />
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={editProfile.role}
-                      onChange={(e) => setEditProfile({...editProfile, role: e.target.value})}
-                      className="w-1/2 text-center text-sm font-medium text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent"
-                      placeholder="Role"
-                    />
-                     <input 
-                      type="text" 
-                      value={editProfile.company}
-                      onChange={(e) => setEditProfile({...editProfile, company: e.target.value})}
-                      className="w-1/2 text-center text-sm font-medium text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent"
-                      placeholder="Company"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <input 
-                        type="text" 
-                        value={editProfile.location}
-                        onChange={(e) => setEditProfile({...editProfile, location: e.target.value})}
-                        className="w-1/2 text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent"
-                        placeholder="Location"
-                    />
-                     <input 
-                        type="text" 
-                        value={editProfile.websiteUrl || ''}
-                        onChange={(e) => setEditProfile({...editProfile, websiteUrl: e.target.value})}
-                        className="w-1/2 text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent"
-                        placeholder="Website URL"
-                    />
-                  </div>
-               </div>
-            ) : (
-                <>
-                    <h1 className="text-2xl font-bold text-gray-900">{activeProfile.name}</h1>
-                    <p className="text-sm font-medium text-gray-500 mt-1">{activeProfile.role} @ {activeProfile.company}</p>
-                    
-                    <div className="flex items-center justify-center gap-3 mt-2 text-gray-400 text-sm">
-                        <span className="flex items-center gap-1"><GetIcon name="MapPin" className="w-3 h-3" /> {activeProfile.location}</span>
-                        {activeProfile.websiteUrl && (
-                             <a href={activeProfile.websiteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-500 hover:underline">
-                                <GetIcon name="Link" className="w-3 h-3" /> 
-                                {activeProfile.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                             </a>
-                        )}
+        {/* PROFILE CONTENT */}
+        <main key={activeProfileId} className="flex flex-col flex-grow w-full animate-enter">
+            <div className="px-6 -mt-16 flex flex-col items-center relative z-10 shrink-0">
+                <div className="relative group">
+                    <div className="w-32 h-32 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-200 relative">
+                        <img src={activeProfile.avatarUrl} alt={activeProfile.name} className="w-full h-full object-cover transition-opacity duration-300" />
+                        {showEditControls && <button onClick={() => setShowAvatarModal(true)} className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"><GetIcon name="Camera" className="w-8 h-8" /></button>}
                     </div>
-                </>
-            )}
-
-            {showEditControls ? (
-              <div className="mt-4 w-full bg-blue-50 p-4 rounded-xl border border-blue-100 text-left animate-fade-in">
-                 <label className="text-xs font-bold text-blue-600 uppercase mb-2 block tracking-wide">Bio</label>
-                 <textarea 
-                    className="w-full bg-white border border-blue-200 rounded-lg p-3 text-sm text-gray-700 focus:ring-2 focus:ring-blue-400 focus:outline-none resize-none"
-                    rows={3}
-                    value={editProfile.bio}
-                    onChange={(e) => setEditProfile({...editProfile, bio: e.target.value})}
-                 />
-
-                 <div className="mt-3">
-                    <label className="text-[10px] font-bold text-blue-400 uppercase tracking-wide ml-1 mb-1.5 block">AI Tone Style</label>
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {(['professional', 'creative', 'friendly', 'humorous', 'inspirational'] as const).map((t) => (
-                            <button
-                                key={t}
-                                onClick={() => setBioTone(t)}
-                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all whitespace-nowrap flex-shrink-0 ${
-                                    bioTone === t
-                                        ? 'bg-white text-blue-600 shadow-sm'
-                                        : 'text-blue-400 hover:text-blue-600 bg-blue-200/30'
-                                }`}
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
-                 </div>
-
-                 <div className="flex gap-2 mt-3 mb-2">
-                    <button 
-                        onClick={handleAIBioGen}
-                        disabled={isGeneratingBio}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                    >
-                        {isGeneratingBio ? (
-                            <span className="animate-pulse">Generating...</span>
-                        ) : (
-                            <>
-                                <GetIcon name="Sparkles" className="w-3 h-3" />
-                                AI Polish
-                            </>
-                        )}
-                    </button>
-                 </div>
-              </div>
-            ) : (
-                <p className="mt-4 text-gray-600 text-sm leading-relaxed max-w-xs mx-auto">
-                {activeProfile.bio}
-                </p>
-            )}
-
-            {showEditControls && (
-                <div className="mt-4 w-full bg-gray-50 p-4 rounded-xl border border-gray-200 text-left animate-fade-in">
-                    <label className="text-xs font-bold text-gray-500 uppercase mb-3 block tracking-wide flex items-center gap-2">
-                        <GetIcon name="Palette" className="w-3 h-3" />
-                        Theme & Appearance
-                    </label>
-                    <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {THEME_PRESETS.map((theme) => (
-                            <button
-                                key={theme.id}
-                                onClick={() => setEditProfile({ ...editProfile, themeColor: theme.value })}
-                                className={`w-8 h-8 rounded-full shadow-sm ring-2 ring-offset-1 transition-all ${editProfile.themeColor === theme.value ? 'ring-blue-500 scale-110' : 'ring-transparent hover:ring-gray-300'}`}
-                            >
-                                <div className={`w-full h-full rounded-full ${theme.preview}`}></div>
-                            </button>
-                        ))}
-                        <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                        <div className="relative group flex items-center">
-                            <input 
-                                type="color"
-                                value={editProfile.themeColor.startsWith('#') ? editProfile.themeColor : '#ffffff'}
-                                onChange={(e) => setEditProfile({ ...editProfile, themeColor: e.target.value })}
-                                className="w-8 h-8 p-0 border-0 rounded-full overflow-hidden cursor-pointer shadow-sm ring-2 ring-offset-1 ring-transparent hover:ring-gray-300"
-                            />
-                             <span className="text-[10px] text-gray-400 ml-2 font-mono">
-                                {editProfile.themeColor.startsWith('#') ? editProfile.themeColor.toUpperCase() : 'Custom'}
-                             </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            {showEditControls && (
-               <button 
-                  onClick={saveProfileChanges}
-                  className="w-full mt-4 bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2"
-                >
-                  <GetIcon name="Check" className="w-4 h-4" />
-                  Save All Changes
-                </button>
-            )}
-          </div>
-
-          <div className="px-6 py-8 flex flex-col gap-4 flex-grow">
-            {links.map((link, index) => (
-                <div key={link.id} className="relative group">
-                    {/* Reorder Controls */}
-                    {showEditControls && (
-                        <div className="absolute -top-3 -left-3 flex flex-col gap-1 z-20">
-                             <button
-                                onClick={(e) => { e.stopPropagation(); handleMoveLink(index, 'up'); }}
-                                disabled={index === 0}
-                                className="p-1 bg-white border border-gray-200 rounded-full shadow-sm text-gray-500 hover:text-blue-600 hover:border-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                             >
-                                <GetIcon name="ChevronUp" className="w-3.5 h-3.5" />
-                             </button>
-                             <button
-                                onClick={(e) => { e.stopPropagation(); handleMoveLink(index, 'down'); }}
-                                disabled={index === links.length - 1}
-                                className="p-1 bg-white border border-gray-200 rounded-full shadow-sm text-gray-500 hover:text-blue-600 hover:border-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                             >
-                                <GetIcon name="ChevronDown" className="w-3.5 h-3.5" />
-                             </button>
+                    {/* Verified Badge */}
+                    {activeProfile.isVerified && !isEditing && (
+                        <div className="absolute bottom-0 right-0 bg-blue-500 text-white p-1 rounded-full border-2 border-white shadow-sm" title="Enterprise Verified">
+                            <GetIcon name="ShieldCheck" className="w-4 h-4" />
                         </div>
                     )}
+                </div>
 
-                    <a 
-                        href={showEditControls ? undefined : link.url}
-                        target={showEditControls ? undefined : "_blank"}
-                        rel="noreferrer"
-                        onClick={() => handleLinkClick(link.id)}
-                        className={`bg-white border p-4 rounded-2xl flex items-center justify-between shadow-sm transition-all duration-200 
-                            ${showEditControls ? 'border-gray-200 opacity-90' : 'border-gray-200 hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 cursor-pointer'}
-                        `}
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl ${link.type === 'social' ? 'bg-gray-50 text-gray-600' : 'bg-blue-50 text-blue-600'} transition-colors duration-300`}>
-                                <GetIcon name={link.iconName} className="w-5 h-5" />
-                            </div>
-                            <span className="font-semibold text-gray-800">{link.title}</span>
+                <div className="mt-4 text-center w-full">
+                    {showEditControls ? (
+                        <div className="w-full space-y-3 mb-4 animate-fade-in">
+                           <input type="text" value={activeProfile.name} onChange={(e) => handleUpdateProfile({ name: e.target.value })} className="w-full text-center text-xl font-bold border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Name" />
+                           <input type="text" value={activeProfile.role} onChange={(e) => handleUpdateProfile({ role: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Role" />
                         </div>
-                        {!showEditControls && (
-                            <div className="text-gray-300 group-hover:translate-x-1 group-hover:text-blue-400 transition-all">
-                                <GetIcon name="Send" className="w-4 h-4 rotate-[-45deg]" />
+                    ) : (
+                        <>
+                            <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
+                                {activeProfile.name}
+                            </h1>
+                            <p className="text-sm font-medium text-gray-500 mt-1">{activeProfile.role} @ {activeProfile.company}</p>
+                            
+                            {/* Masked Contact Info with Privacy Controls */}
+                            <div className="flex flex-col items-center gap-1 mt-3 mb-2">
+                                {activeProfile.privacySettings.emailVisible && (
+                                    <PrivacyMaskedField 
+                                        value={activeProfile.email} 
+                                        label="Email" 
+                                        iconName="Mail" 
+                                        isMasked={activeProfile.privacySettings.maskSensitiveData}
+                                        isEditing={false} 
+                                    />
+                                )}
+                                {activeProfile.privacySettings.phoneVisible && (
+                                    <PrivacyMaskedField 
+                                        value={activeProfile.phone} 
+                                        label="Phone" 
+                                        iconName="Phone" 
+                                        isMasked={activeProfile.privacySettings.maskSensitiveData}
+                                        isEditing={false} 
+                                    />
+                                )}
                             </div>
-                        )}
-                    </a>
+                            
+                            <p className="mt-2 text-gray-600 text-sm leading-relaxed max-w-xs mx-auto">{activeProfile.bio}</p>
+                        </>
+                    )}
                     
                     {showEditControls && (
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteLink(link.id);
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-colors z-10"
-                        >
-                            <GetIcon name="Trash2" className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-            ))}
-
-            {showEditControls && (
-                <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-4 animate-fade-in mt-2">
-                    <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wide flex items-center gap-2">
-                        <GetIcon name="Plus" className="w-4 h-4" />
-                        Add New Link
-                    </h3>
-                    
-                    <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar mb-2">
-                        {PLATFORMS.map(p => (
-                            <button 
-                                key={p.id}
-                                onClick={() => {
-                                    setActivePlatformId(p.id);
-                                    setNewLinkTitle(p.label);
-                                    setLinkError(null);
-                                    if (p.id === 'phone') {
-                                        setNewLinkUrl('tel:');
-                                    } else if (p.id === 'email') {
-                                        setNewLinkUrl('mailto:');
-                                    } else {
-                                        setNewLinkUrl('');
-                                    }
-                                }}
-                                className={`flex flex-col items-center gap-2 min-w-[70px] p-3 rounded-xl border transition-all ${activePlatformId === p.id ? 'border-blue-500 bg-blue-50 text-blue-600 ring-2 ring-blue-100' : 'border-gray-200 bg-white text-gray-400 hover:bg-gray-50'}`}
-                            >
-                                <GetIcon name={p.icon} className="w-6 h-6" />
-                                <span className="text-[10px] font-semibold">{p.label}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Title</label>
-                            <input 
-                                type="text" 
-                                placeholder="Link Title"
-                                value={newLinkTitle}
-                                onChange={e => setNewLinkTitle(e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            />
+                        <div className="mt-4 w-full bg-blue-50 p-4 rounded-xl border border-blue-100 text-left animate-fade-in space-y-3">
+                            <label className="text-xs font-bold text-blue-600 uppercase block">Bio</label>
+                            <textarea className="w-full bg-white border rounded-lg p-3 text-sm mb-2" rows={3} value={activeProfile.bio} onChange={(e) => handleUpdateProfile({ bio: e.target.value })} />
+                            <div className="flex gap-2">
+                                <button onClick={handleAIBioGen} disabled={isGeneratingBio} className="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                                    {isGeneratingBio ? "Thinking..." : <><GetIcon name="Sparkles" className="w-3 h-3" /> AI Polish</>}
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">URL</label>
-                            <div className="relative">
-                                <input 
-                                    type={(activePlatformId === 'phone' || activePlatformId === 'whatsapp') ? 'tel' : 'url'} 
-                                    placeholder={getPlaceholder(activePlatformId)}
-                                    value={newLinkUrl}
-                                    onChange={e => {
-                                        setNewLinkUrl(e.target.value);
-                                        if (linkError) setLinkError(null);
-                                    }}
-                                    onBlur={handleBlurUrl}
-                                    className={`w-full bg-white border rounded-xl p-3 text-sm text-gray-800 focus:ring-2 focus:outline-none transition-colors pr-10 ${linkError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-400'}`}
-                                />
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                    {linkError ? (
-                                        <GetIcon name="AlertCircle" className="w-5 h-5 text-red-500" />
-                                    ) : (
-                                        isUrlValid && <GetIcon name="Check" className="w-5 h-5 text-green-500" />
-                                    )}
+                    )}
+                    
+                    {/* Privacy Controls (Edit Mode) */}
+                    {showEditControls && (
+                        <div className="mt-4 w-full bg-gray-50 p-4 rounded-xl border border-gray-200 text-left animate-fade-in">
+                            <h4 className="text-xs font-bold text-gray-600 uppercase mb-3 flex items-center gap-2">
+                                <GetIcon name="Lock" className="w-3 h-3" /> Privacy Settings
+                            </h4>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-700">Show Email</span>
+                                    <button onClick={() => handleUpdatePrivacy({ emailVisible: !activeProfile.privacySettings.emailVisible })} className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${activeProfile.privacySettings.emailVisible ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}>
+                                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-700">Show Phone</span>
+                                    <button onClick={() => handleUpdatePrivacy({ phoneVisible: !activeProfile.privacySettings.phoneVisible })} className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${activeProfile.privacySettings.phoneVisible ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}>
+                                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between border-t border-gray-200 pt-3 mt-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm text-gray-700 font-medium">Data Masking</span>
+                                        <span className="text-[10px] text-gray-500">Hide details until clicked (Anti-scraping)</span>
+                                    </div>
+                                    <button onClick={() => handleUpdatePrivacy({ maskSensitiveData: !activeProfile.privacySettings.maskSensitiveData })} className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${activeProfile.privacySettings.maskSensitiveData ? 'bg-blue-500 justify-end' : 'bg-gray-300 justify-start'}`}>
+                                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                    </button>
                                 </div>
                             </div>
-                            {linkError && (
-                                <p className="text-xs text-red-500 mt-1.5 font-medium ml-1 animate-fade-in">
-                                    {linkError}
-                                </p>
-                            )}
                         </div>
-                        <button 
-                            onClick={handleAddLink} 
-                            disabled={!newLinkUrl || !!linkError}
-                            className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            <GetIcon name="Plus" className="w-4 h-4" />
-                            Add Link
-                        </button>
-                    </div>
-                </div>
-            )}
-            
-            {/* Spacer for sticky bottom bar */}
-             <div className="h-20"></div>
-        </div>
+                    )}
 
-        {/* === Sticky Bottom Action Bar (Thumb Zone) === */}
+                    {showEditControls && <button onClick={() => setIsEditing(false)} className="w-full mt-4 bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2"><GetIcon name="Check" className="w-4 h-4" /> Finish Editing</button>}
+                </div>
+            </div>
+
+            {/* LINKS LIST */}
+            <div className="px-6 py-8 flex flex-col flex-grow">
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="links-list">
+                  {(provided) => (
+                    <div 
+                        {...provided.droppableProps} 
+                        ref={provided.innerRef}
+                    >
+                        {activeLinks.map((link, index) => (
+                            <Draggable key={link.id} draggableId={link.id} index={index} isDragDisabled={!showEditControls}>
+                                {(provided, snapshot) => (
+                                    <div 
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        style={{ 
+                                            ...provided.draggableProps.style, 
+                                            marginBottom: '1rem',
+                                            transform: snapshot.isDragging ? provided.draggableProps.style?.transform : 'translate(0px, 0px)',
+                                        }}
+                                        className={`relative group transition-all duration-200 ${snapshot.isDragging ? 'z-50 scale-[1.02] shadow-2xl ring-2 ring-blue-500/50 bg-white rounded-2xl rotate-1 opacity-95' : 'animate-fade-in'}`}
+                                    >
+                                        {/* Drag Handle */}
+                                        {showEditControls && (
+                                            <div 
+                                                {...provided.dragHandleProps} 
+                                                className={`absolute -top-3 -left-3 z-20 p-2.5 rounded-full shadow-lg border transition-all duration-200 cursor-grab active:cursor-grabbing flex items-center justify-center ${snapshot.isDragging ? 'bg-blue-600 text-white border-blue-600 scale-110' : 'bg-white text-gray-400 hover:text-blue-500 border-gray-200 hover:border-blue-200'}`}
+                                            >
+                                                <GetIcon name="GripVertical" className="w-4 h-4" />
+                                            </div>
+                                        )}
+
+                                        {/* Content Logic */}
+                                        {(() => {
+                                            if (link.type === 'commerce') {
+                                                return (
+                                                    <div className="relative">
+                                                        <a 
+                                                            href={showEditControls ? undefined : link.url} 
+                                                            target={showEditControls ? undefined : "_blank"} 
+                                                            rel="noreferrer" 
+                                                            onClick={() => handleLinkClick(link)}
+                                                            className={`block bg-white border border-blue-100 p-5 rounded-2xl shadow-lg shadow-blue-50 hover:shadow-xl hover:border-blue-200 transition-all duration-200 relative overflow-hidden ${showEditControls ? 'opacity-90' : 'cursor-pointer'}`}
+                                                        >
+                                                            <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-bl-xl z-10">
+                                                                {link.currency}{link.price}
+                                                            </div>
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+                                                                    <GetIcon name={link.iconName} className="w-6 h-6" />
+                                                                </div>
+                                                                <div className="flex-1 pr-12">
+                                                                    <h3 className="font-bold text-gray-900 leading-tight mb-1">{link.title}</h3>
+                                                                    <p className="text-xs text-gray-500 leading-relaxed">{link.description}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-4 pt-3 border-t border-blue-50 flex items-center justify-between text-blue-600 text-xs font-bold uppercase tracking-wide">
+                                                                <span>Instant Book</span>
+                                                                <GetIcon name="ChevronUp" className="w-4 h-4 rotate-90" />
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                );
+                                            }
+                                            if (link.type === 'locked') {
+                                                return (
+                                                    <div className="relative">
+                                                        <button 
+                                                            onClick={() => handleLinkClick(link)}
+                                                            className={`w-full bg-gray-900 border border-gray-800 p-4 rounded-2xl flex items-center justify-between shadow-md text-white hover:bg-gray-800 transition-all duration-200 ${showEditControls ? 'opacity-90' : 'cursor-pointer'}`}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="p-2.5 rounded-xl bg-gray-800 text-yellow-400">
+                                                                    <GetIcon name="Lock" className="w-5 h-5" />
+                                                                </div>
+                                                                <div className="text-left">
+                                                                    <span className="font-semibold block">{link.title}</span>
+                                                                    {link.description && <span className="text-xs text-gray-400">{link.description}</span>}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-gray-500">
+                                                                <GetIcon name="Key" className="w-4 h-4" />
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div className="relative">
+                                                    <a 
+                                                        href={showEditControls ? undefined : link.url} 
+                                                        target={showEditControls ? undefined : "_blank"} 
+                                                        rel="noreferrer" 
+                                                        onClick={() => handleLinkClick(link)}
+                                                        className={`bg-white border p-4 rounded-2xl flex items-center justify-between shadow-sm transition-all duration-200 ${showEditControls ? 'border-gray-200 opacity-90' : 'border-gray-200 hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 cursor-pointer'}`}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`p-2.5 rounded-xl ${link.type === 'social' ? 'bg-gray-50 text-gray-600' : 'bg-blue-50 text-blue-600'}`}>
+                                                                <GetIcon name={link.iconName} className="w-5 h-5" />
+                                                            </div>
+                                                            <span className="font-semibold text-gray-800">{link.title}</span>
+                                                        </div>
+                                                        {!showEditControls && <div className="text-gray-300 group-hover:translate-x-1 group-hover:text-blue-400 transition-all"><GetIcon name="Send" className="w-4 h-4 rotate-[-45deg]" /></div>}
+                                                    </a>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {showEditControls && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleUpdateProfile({ links: activeLinks.filter(l => l.id !== link.id) }); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md z-20 hover:bg-red-600 transition-colors"
+                                            >
+                                                <GetIcon name="Trash2" className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </Draggable>
+                        ))}
+                        {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+
+                {showEditControls && (
+                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-4 animate-fade-in mt-2">
+                        <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wide flex items-center gap-2"><GetIcon name="Plus" className="w-4 h-4" /> Add Block</h3>
+                        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar mb-2">
+                            {PLATFORMS.map(p => (
+                                <button key={p.id} onClick={() => { setActivePlatformId(p.id); setNewLinkTitle(p.label); setNewLinkUrl(''); }} className={`flex flex-col items-center gap-2 min-w-[70px] p-3 rounded-xl border transition-all ${activePlatformId === p.id ? 'border-blue-500 bg-blue-50 text-blue-600 ring-2 ring-blue-100' : 'border-gray-200 bg-white text-gray-400 hover:bg-gray-50'}`}>
+                                    <GetIcon name={p.icon} className="w-6 h-6" />
+                                    <span className="text-[10px] font-semibold text-center leading-tight">{p.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="space-y-3">
+                            <input type="text" placeholder="Title" value={newLinkTitle} onChange={e => setNewLinkTitle(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                            <input type={(activePlatformId === 'phone') ? 'tel' : 'url'} placeholder="URL" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                            
+                            {(activePlatformId === 'commerce' || activePlatformId === 'locked') && (
+                                <div className="animate-fade-in space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                    {activePlatformId === 'commerce' && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-500 font-bold">$</span>
+                                            <input type="number" placeholder="Price" value={newLinkPrice} onChange={e => setNewLinkPrice(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400" />
+                                        </div>
+                                    )}
+                                    <textarea placeholder="Description (Optional)" value={newLinkDesc} onChange={e => setNewLinkDesc(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400" rows={2} />
+                                </div>
+                            )}
+
+                            <button onClick={handleAddLink} disabled={!newLinkUrl} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50"><GetIcon name="Plus" className="w-4 h-4" /> Add to Profile</button>
+                        </div>
+                    </div>
+                )}
+                <div className="h-20"></div>
+            </div>
+            
+            <div className="w-full text-center pb-8 shrink-0 bg-white">
+                <div className="flex items-center justify-center gap-2 text-gray-300 text-xs font-medium">
+                    <div className="w-2 h-2 rounded-full bg-gray-300"></div><span>TabNode</span>
+                </div>
+            </div>
+        </main>
+
+        {/* BOTTOM NAV */}
         {!showEditControls && (
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 flex gap-3 z-40 pb-safe">
-                <button 
-                    onClick={handleSaveContact}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gray-900 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-gray-200 hover:scale-[1.02] active:scale-95 transition-all"
-                >
-                    <GetIcon name="Download" className="w-5 h-5" />
-                    Save Contact
-                </button>
-                <button 
-                    onClick={handleCopyLink}
-                    className={`flex items-center justify-center w-14 rounded-2xl border font-bold text-sm transition-all hover:bg-gray-50 active:scale-95 ${copiedLink ? 'border-green-500 text-green-600 bg-green-50' : 'border-gray-200 text-gray-700 bg-white'}`}
-                >
-                    {copiedLink ? <GetIcon name="Check" className="w-6 h-6" /> : <GetIcon name="Copy" className="w-6 h-6" />}
-                </button>
+                <button onClick={handleSaveContact} className="flex-1 flex items-center justify-center gap-2 bg-gray-900 text-white py-4 rounded-2xl font-bold text-base shadow-lg shadow-gray-200 hover:scale-[1.02] active:scale-95 transition-all"><GetIcon name="Download" className="w-5 h-5" /> Save Contact</button>
+                <button onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); }) }} className={`flex items-center justify-center w-14 rounded-2xl border font-bold text-sm transition-all hover:bg-gray-50 active:scale-95 ${copiedLink ? 'border-green-500 text-green-600 bg-green-50' : 'border-gray-200 text-gray-700 bg-white'}`}>{copiedLink ? <GetIcon name="Check" className="w-6 h-6" /> : <GetIcon name="Copy" className="w-6 h-6" />}</button>
             </div>
         )}
 
-        {isPreviewMode && (
-            <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
-                <button 
-                    onClick={() => setIsPreviewMode(false)}
-                    className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl hover:scale-105 transition font-medium ring-2 ring-white"
-                >
-                    <GetIcon name="EyeOff" className="w-4 h-4" />
-                    Exit Preview
-                </button>
-            </div>
-        )}
-        
-        {/* Footer Branding */}
-        <div className="w-full text-center pb-8 shrink-0 bg-white">
-             <div className="flex items-center justify-center gap-2 text-gray-300 text-xs font-medium">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                <span>TabNode</span>
-             </div>
-        </div>
-
-        <QRCodeModal 
-            isOpen={showQR} 
-            onClose={() => setShowQR(false)} 
-            url={window.location.href}
-            avatarUrl={activeProfile.avatarUrl}
-            username={activeProfile.name.replace(/\s+/g, '').toLowerCase()}
-        />
-
-        <AvatarSelectionModal 
-            isOpen={showAvatarModal}
-            onClose={() => setShowAvatarModal(false)}
-            onSelect={handleAvatarUpdate}
-        />
-        
-        <AnalyticsModal 
-            isOpen={showAnalytics}
-            onClose={() => setShowAnalytics(false)}
-            links={links}
-        />
-        
-        <AndroidSaveGuideModal 
-            isOpen={showAndroidGuide}
-            onClose={() => setShowAndroidGuide(false)}
-        />
+        {/* MODALS */}
+        <PinEntryModal isOpen={!!lockedLinkTarget} onClose={() => setLockedLinkTarget(null)} onSuccess={handleUnlockSuccess} title={lockedLinkTarget?.title || ''} />
+        <ProfileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} profiles={profiles} activeId={activeProfileId} onSwitch={(id:string) => { setActiveProfileId(id); setIsEditing(false); }} onAdd={handleCreateProfile} onDelete={handleDeleteProfile} />
+        <QRCodeModal isOpen={showQR} onClose={() => setShowQR(false)} url={window.location.href} avatarUrl={activeProfile.avatarUrl} username={activeProfile.name.replace(/\s+/g, '').toLowerCase()} />
+        <AvatarSelectionModal isOpen={showAvatarModal} onClose={() => setShowAvatarModal(false)} onSelect={(url) => { handleUpdateProfile({ avatarUrl: url }); setShowAvatarModal(false); }} />
+        <AnalyticsModal isOpen={showAnalytics} onClose={() => setShowAnalytics(false)} links={activeLinks} />
+        <AuditLogModal isOpen={showAuditLog} onClose={() => setShowAuditLog(false)} />
+        <AndroidSaveGuideModal isOpen={showAndroidGuide} onClose={() => setShowAndroidGuide(false)} />
 
       </div>
     </div>
