@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey });
 export const generateProfessionalBio = async (
   currentBio: string,
   role: string,
-  tone: 'professional' | 'creative' | 'friendly'
+  tone: 'professional' | 'creative' | 'friendly' | 'humorous' | 'inspirational'
 ): Promise<string> => {
   if (!apiKey) {
     console.warn("Gemini API Key is missing.");

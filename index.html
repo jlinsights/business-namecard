@@ -2,8 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>SliceLink</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>TabNode</title>
+    
+    <!-- PWA & Mobile Capability -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TabNode" />
+
+    <!-- SEO & Social Sharing (Open Graph) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TabNode - Digital Business Card" />
+    <meta property="og:description" content="Connect instantly. Save my contact details and portfolio with a single tap." />
+    <meta property="og:image" content="https://api.dicebear.com/9.x/shapes/png?seed=TabNode&backgroundColor=4f46e5" />
+    <meta property="og:site_name" content="TabNode" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -15,6 +30,10 @@
       .no-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
+      }
+      /* Safe area for iPhone X+ */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
       }
     </style>
   <script type="importmap">

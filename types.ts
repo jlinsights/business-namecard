@@ -4,6 +4,7 @@ export interface LinkItem {
   url: string;
   type: 'social' | 'website' | 'contact' | 'video';
   iconName: string; // Storing icon name as string for dynamic lookup
+  clicks?: number;
 }
 
 export interface UserProfile {
