@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { UserProfile } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
@@ -43,22 +44,30 @@ export const generateProfessionalBio = async (
 };
 
 /**
- * Generates a vCard format string for the user (AI not strictly needed but good for formatting)
- * We will stick to a simple template function here for reliability, but use AI if we wanted to extract details from text.
+ * Generates a vCard format string for the user with comprehensive details.
  */
 export const generateVCardData = (
-  name: string,
-  phone: string,
-  email: string,
-  role: string,
-  url: string
+  profile: UserProfile,
+  currentUrl: string
 ): string => {
+  const parts = profile.name.trim().split(/\s+/);
+  const firstName = parts[0] || "";
+  const lastName = parts.slice(1).join(" ") || "";
+  const org = profile.company || profile.organizationName || "";
+  // Ensure bio newlines are handled for vCard format (escaped \n)
+  const escapedBio = (profile.bio || "").replace(/\n/g, "\\n").replace(/,/g, "\\,"); 
+  const escapedLoc = (profile.location || "").replace(/,/g, "\\,");
+
   return `BEGIN:VCARD
 VERSION:3.0
-FN:${name}
-TITLE:${role}
-TEL;TYPE=CELL:${phone}
-EMAIL;TYPE=WORK:${email}
-URL:${url}
+FN:${profile.name}
+N:${lastName};${firstName};;;
+ORG:${org}
+TITLE:${profile.role}
+TEL;TYPE=CELL,VOICE:${profile.phone}
+EMAIL;TYPE=WORK,INTERNET:${profile.email}
+URL:${profile.websiteUrl || currentUrl}
+ADR;TYPE=WORK:;;${escapedLoc};;;;
+NOTE:${escapedBio}
 END:VCARD`;
 };

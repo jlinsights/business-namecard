@@ -30,7 +30,7 @@ export interface AuditLogEntry {
 
 export interface UserProfile {
   id: string; 
-  type: 'business' | 'personal'; // Contextual Identity
+  type: 'business' | 'personal' | 'business_card'; // Contextual Identity
   organizationName?: string; // For business profiles
   isVerified?: boolean;
   name: string;

@@ -51,7 +51,7 @@ const INITIAL_LINKS_2: LinkItem[] = [
 const INITIAL_PROFILES: UserProfile[] = [
   {
     id: 'profile_1',
-    type: 'business',
+    type: 'business_card',
     organizationName: 'TabNode Corp.',
     isVerified: true,
     name: "Alex Sterling",
@@ -100,7 +100,9 @@ const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok', icon: 'Music' },
   { id: 'youtube', label: 'YouTube', icon: 'Youtube' },
   { id: 'linkedin', label: 'LinkedIn', icon: 'Linkedin' },
+  { id: 'threads', label: 'Threads', icon: 'AtSign' },
   { id: 'commerce', label: 'Sell Product', icon: 'ShoppingBag' }, 
+  { id: 'paid_call', label: 'Book Call', icon: 'Phone' },
   { id: 'locked', label: 'Secret Link', icon: 'Lock' }, 
   { id: 'website', label: 'Website', icon: 'Globe' },
   { id: 'email', label: 'Email', icon: 'Mail' },
@@ -112,6 +114,7 @@ const PLATFORM_BASE_URLS: Record<string, string> = {
   tiktok: 'https://tiktok.com/@',
   youtube: 'https://youtube.com/@',
   linkedin: 'https://linkedin.com/in/',
+  threads: 'https://www.threads.net/@',
 };
 
 // --- HELPERS & SUB-COMPONENTS ---
@@ -120,7 +123,7 @@ const validateAndFormatUrl = (input: string, platformId: string): { isValid: boo
   const trimmed = input.trim();
   if (!trimmed) return { isValid: false, formattedUrl: input, error: 'This field cannot be empty.' };
   
-  if (platformId === 'commerce' || platformId === 'locked') {
+  if (platformId === 'commerce' || platformId === 'locked' || platformId === 'paid_call') {
        if (!/^https?:\/\//i.test(trimmed)) return { isValid: true, formattedUrl: `https://${trimmed}` };
        return { isValid: true, formattedUrl: trimmed };
   }
@@ -197,6 +200,25 @@ const PinEntryModal = ({ isOpen, onClose, onSuccess, title }: { isOpen: boolean;
     );
 };
 
+const SaveConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl relative animate-scale-up">
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-900"><GetIcon name="Download" className="w-6 h-6" /></div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Save Contact?</h3>
+                    <p className="text-sm text-gray-500 mb-6">This will download a .vcf file to your device contacts.</p>
+                    <div className="flex gap-3 w-full">
+                        <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-200 font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button onClick={onConfirm} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800">Save</button>
+                    </div>
+                </div>
+             </div>
+        </div>
+    );
+};
+
 const AndroidSaveGuideModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     if (!isOpen) return null;
     return (
@@ -234,7 +256,7 @@ const ProfileDrawer = ({ isOpen, onClose, profiles, activeId, onSwitch, onAdd, o
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
                                             <h3 className={`font-bold truncate ${activeId === profile.id ? 'text-blue-700' : 'text-gray-900'}`}>{profile.name}</h3>
-                                            {profile.type === 'business' && <GetIcon name="Briefcase" className="w-3 h-3 text-blue-500" />}
+                                            {(profile.type === 'business' || profile.type === 'business_card') && <GetIcon name="Briefcase" className="w-3 h-3 text-blue-500" />}
                                         </div>
                                         <p className="text-xs text-gray-500 truncate">{profile.role}</p>
                                     </div>
@@ -274,6 +296,7 @@ export function App() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [showAndroidGuide, setShowAndroidGuide] = useState(false);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   
   // Locked Link State
   const [lockedLinkTarget, setLockedLinkTarget] = useState<LinkItem | null>(null);
@@ -321,7 +344,16 @@ export function App() {
         // Deep copy needed for links
         newProfile = source ? { ...source, id: newId, name: `${source.name} (Copy)`, links: source.links.map(l => ({ ...l, id: Date.now().toString() + Math.random() })) } : { ...INITIAL_PROFILES[0], id: newId };
     } else {
-        newProfile = { ...INITIAL_PROFILES[0], id: newId, name: "New Profile", links: [] };
+        newProfile = { 
+            ...INITIAL_PROFILES[0], 
+            id: newId, 
+            name: "New Business Card", 
+            role: "Founder",
+            company: "My Company",
+            links: [], 
+            type: 'business_card', // Default type
+            isVerified: false 
+        };
     }
     setProfiles([...profiles, newProfile]);
     setActiveProfileId(newId);
@@ -385,7 +417,11 @@ export function App() {
     
     const platform = PLATFORMS.find(p => p.id === activePlatformId) || PLATFORMS[0];
     let type: LinkItem['type'] = 'social';
-    if (['phone', 'email', 'commerce', 'locked'].includes(platform.id)) {
+    
+    // Map 'paid_call' to 'commerce' type but keep the Phone icon from platform definition
+    if (activePlatformId === 'paid_call') {
+        type = 'commerce';
+    } else if (['phone', 'email', 'commerce', 'locked'].includes(platform.id)) {
         type = platform.id as LinkItem['type'];
     } else if (platform.id === 'website') type = 'website';
 
@@ -397,9 +433,9 @@ export function App() {
       iconName: platform.icon,
       clicks: 0,
       clickTimestamps: [],
-      price: activePlatformId === 'commerce' ? newLinkPrice : undefined,
-      currency: activePlatformId === 'commerce' ? '$' : undefined,
-      description: (activePlatformId === 'commerce' || activePlatformId === 'locked') ? newLinkDesc : undefined,
+      price: (activePlatformId === 'commerce' || activePlatformId === 'paid_call') ? newLinkPrice : undefined,
+      currency: (activePlatformId === 'commerce' || activePlatformId === 'paid_call') ? '$' : undefined,
+      description: (activePlatformId === 'commerce' || activePlatformId === 'locked' || activePlatformId === 'paid_call') ? newLinkDesc : undefined,
       isLocked: activePlatformId === 'locked'
     };
 
@@ -417,14 +453,10 @@ export function App() {
        navigator.clipboard.writeText(window.location.href).then(() => { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); });
     }
   };
-   const handleSaveContact = () => {
-    const vCardData = generateVCardData(
-      activeProfile.name,
-      activeProfile.phone,
-      activeProfile.email,
-      activeProfile.role,
-      activeProfile.websiteUrl || window.location.href
-    );
+
+   const executeSaveContact = () => {
+    setShowSaveConfirmation(false);
+    const vCardData = generateVCardData(activeProfile, window.location.href);
     const blob = new Blob([vCardData], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -435,6 +467,11 @@ export function App() {
     document.body.removeChild(link);
     if (/android/i.test(navigator.userAgent)) setShowAndroidGuide(true);
   };
+
+   const handleSaveContact = () => {
+       setShowSaveConfirmation(true);
+   };
+
    const handleAIBioGen = async () => {
     if (!activeProfile.bio) return;
     setIsGeneratingBio(true);
@@ -455,9 +492,9 @@ export function App() {
         <div className={headerClass} style={headerStyle}>
           {/* Security Context Badge (Enterprise/Personal) */}
           <div className="absolute top-0 left-0 right-0 h-8 bg-black/10 backdrop-blur-sm flex items-center justify-center gap-1.5 z-30">
-             {activeProfile.type === 'business' ? (
+             {(activeProfile.type === 'business' || activeProfile.type === 'business_card') ? (
                  <span className="flex items-center gap-1 text-[10px] font-bold text-white uppercase tracking-widest">
-                     <GetIcon name="ShieldCheck" className="w-3 h-3 text-blue-300" /> Enterprise Managed
+                     <GetIcon name="ShieldCheck" className="w-3 h-3 text-blue-300" /> {activeProfile.type === 'business' ? 'Enterprise Managed' : 'Digital Business Card'}
                  </span>
              ) : (
                  <span className="flex items-center gap-1 text-[10px] font-bold text-white uppercase tracking-widest opacity-80">
@@ -515,6 +552,12 @@ export function App() {
                         <div className="w-full space-y-3 mb-4 animate-fade-in">
                            <input type="text" value={activeProfile.name} onChange={(e) => handleUpdateProfile({ name: e.target.value })} className="w-full text-center text-xl font-bold border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Name" />
                            <input type="text" value={activeProfile.role} onChange={(e) => handleUpdateProfile({ role: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Role" />
+                           {(activeProfile.type === 'business_card' || activeProfile.type === 'business') && (
+                               <>
+                                   <input type="text" value={activeProfile.company} onChange={(e) => handleUpdateProfile({ company: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Company Display Name" />
+                                   <input type="text" value={activeProfile.organizationName || ''} onChange={(e) => handleUpdateProfile({ organizationName: e.target.value })} className="w-full text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Legal Organization Name" />
+                               </>
+                           )}
                         </div>
                     ) : (
                         <>
@@ -590,6 +633,19 @@ export function App() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Verified Badge Toggle for Business Card */}
+                    {showEditControls && (activeProfile.type === 'business_card' || activeProfile.type === 'business') && (
+                        <div className="mt-4 w-full bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-left animate-fade-in flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                                <GetIcon name="ShieldCheck" className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-bold text-gray-700">Verified Badge</span>
+                             </div>
+                             <button onClick={() => handleUpdateProfile({ isVerified: !activeProfile.isVerified })} className={`w-12 h-7 rounded-full transition-colors flex items-center px-1 ${activeProfile.isVerified ? 'bg-blue-600 justify-end' : 'bg-gray-300 justify-start'}`}>
+                                <div className="w-5 h-5 rounded-full bg-white shadow-md" />
+                             </button>
                         </div>
                     )}
 
@@ -738,9 +794,9 @@ export function App() {
                             <input type="text" placeholder="Title" value={newLinkTitle} onChange={e => setNewLinkTitle(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
                             <input type={(activePlatformId === 'phone') ? 'tel' : 'url'} placeholder="URL" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
                             
-                            {(activePlatformId === 'commerce' || activePlatformId === 'locked') && (
+                            {(activePlatformId === 'commerce' || activePlatformId === 'locked' || activePlatformId === 'paid_call') && (
                                 <div className="animate-fade-in space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                                    {activePlatformId === 'commerce' && (
+                                    {(activePlatformId === 'commerce' || activePlatformId === 'paid_call') && (
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-500 font-bold">$</span>
                                             <input type="number" placeholder="Price" value={newLinkPrice} onChange={e => setNewLinkPrice(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400" />
@@ -780,6 +836,7 @@ export function App() {
         <AnalyticsModal isOpen={showAnalytics} onClose={() => setShowAnalytics(false)} links={activeLinks} />
         <AuditLogModal isOpen={showAuditLog} onClose={() => setShowAuditLog(false)} />
         <AndroidSaveGuideModal isOpen={showAndroidGuide} onClose={() => setShowAndroidGuide(false)} />
+        <SaveConfirmationModal isOpen={showSaveConfirmation} onClose={() => setShowSaveConfirmation(false)} onConfirm={executeSaveContact} />
 
       </div>
     </div>
