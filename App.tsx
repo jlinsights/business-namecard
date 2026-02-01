@@ -330,7 +330,7 @@ export function App() {
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    const items = Array.from(activeLinks);
+    const items = [...activeLinks];
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     handleUpdateProfile({ links: items });
@@ -552,11 +552,9 @@ export function App() {
                         <div className="w-full space-y-3 mb-4 animate-fade-in">
                            <input type="text" value={activeProfile.name} onChange={(e) => handleUpdateProfile({ name: e.target.value })} className="w-full text-center text-xl font-bold border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Name" />
                            <input type="text" value={activeProfile.role} onChange={(e) => handleUpdateProfile({ role: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Role" />
+                           <input type="text" value={activeProfile.company} onChange={(e) => handleUpdateProfile({ company: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Company / Affiliation" />
                            {(activeProfile.type === 'business_card' || activeProfile.type === 'business') && (
-                               <>
-                                   <input type="text" value={activeProfile.company} onChange={(e) => handleUpdateProfile({ company: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Company Display Name" />
-                                   <input type="text" value={activeProfile.organizationName || ''} onChange={(e) => handleUpdateProfile({ organizationName: e.target.value })} className="w-full text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Legal Organization Name" />
-                               </>
+                               <input type="text" value={activeProfile.organizationName || ''} onChange={(e) => handleUpdateProfile({ organizationName: e.target.value })} className="w-full text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Legal Organization Name" />
                            )}
                         </div>
                     ) : (
