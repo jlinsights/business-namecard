@@ -549,12 +549,26 @@ export function App() {
 
                 <div className="mt-4 text-center w-full">
                     {showEditControls ? (
-                        <div className="w-full space-y-3 mb-4 animate-fade-in">
-                           <input type="text" value={activeProfile.name} onChange={(e) => handleUpdateProfile({ name: e.target.value })} className="w-full text-center text-xl font-bold border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Name" />
-                           <input type="text" value={activeProfile.role} onChange={(e) => handleUpdateProfile({ role: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Role" />
-                           <input type="text" value={activeProfile.company} onChange={(e) => handleUpdateProfile({ company: e.target.value })} className="w-full text-center text-sm text-gray-500 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Company / Affiliation" />
+                        <div className="w-full space-y-4 mb-6 animate-fade-in bg-white/50 p-4 rounded-2xl border border-gray-100">
+                           <div>
+                              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Full Name</label>
+                              <input type="text" value={activeProfile.name} onChange={(e) => handleUpdateProfile({ name: e.target.value })} className="w-full text-center text-lg font-bold border-b border-gray-200 pb-2 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="e.g. Alex Sterling" />
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                               <div>
+                                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Role</label>
+                                  <input type="text" value={activeProfile.role} onChange={(e) => handleUpdateProfile({ role: e.target.value })} className="w-full text-center text-sm text-gray-600 border-b border-gray-200 pb-2 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="e.g. Designer" />
+                               </div>
+                               <div>
+                                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Company</label>
+                                  <input type="text" value={activeProfile.company} onChange={(e) => handleUpdateProfile({ company: e.target.value })} className="w-full text-center text-sm text-gray-600 border-b border-gray-200 pb-2 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="e.g. TabNode" />
+                               </div>
+                           </div>
                            {(activeProfile.type === 'business_card' || activeProfile.type === 'business') && (
-                               <input type="text" value={activeProfile.organizationName || ''} onChange={(e) => handleUpdateProfile({ organizationName: e.target.value })} className="w-full text-center text-xs text-gray-400 border-b border-gray-200 pb-1 focus:border-blue-500 focus:outline-none bg-transparent" placeholder="Legal Organization Name" />
+                               <div>
+                                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Legal Entity Name</label>
+                                  <input type="text" value={activeProfile.organizationName || ''} onChange={(e) => handleUpdateProfile({ organizationName: e.target.value })} className="w-full text-center text-xs text-gray-500 border-b border-gray-200 pb-2 focus:border-blue-500 focus:outline-none bg-transparent font-mono" placeholder="e.g. TabNode Corporation Inc." />
+                               </div>
                            )}
                         </div>
                     ) : (
