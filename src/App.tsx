@@ -19,29 +19,19 @@ export function App() {
   const profileHook = useProfile(ui.isPreviewMode);
   const linksHook = useLinks();
 
-  // Sync isEditing with profile hook if needed, or handle save/cancel sync
-  // Actually, checking original code, "saveProfileChanges" did setEditProfile and closed edit mode.
-  // My extracted hook has saveProfileChanges but doesn't control isEditing.
-  // I need to wrap it.
-  
+  // Save profile changes and exit edit mode
   const handleSaveAll = () => {
       profileHook.saveProfileChanges();
       ui.setIsEditing(false);
       ui.setIsPreviewMode(false);
   };
-  
-  // Also sync initial profile to editProfile when entering edit mode?
-  // Original code: useEffect(() => { if (isEditing) { setEditProfile(profile); } }, [isEditing, profile]);
+
+  // Sync profile to edit form when entering edit mode
   useEffect(() => {
       if (ui.isEditing) {
           profileHook.setEditProfile(profileHook.profile);
       }
-  }, [ui.isEditing, profileHook.profile]); // Adding profileHook.profile to dep array might cause loop if not careful, but profile isn't changing during edit usually.
-  // Actually, wait. "editProfile" is local state in hook. "profile" is "committed" state in hook.
-  // The hook exposes setEditProfile.
-  // This effect needs to be here or inside the hook. 
-  // Inside the hook I didn't pass isEditing.
-  // So keeping it here is fine.
+  }, [ui.isEditing, profileHook.profile]);
 
   // Handle Share Wrapper
   const onShare = () => {
